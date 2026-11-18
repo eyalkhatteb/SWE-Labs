@@ -3,17 +3,20 @@ package com.example.swelabs;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
 
 /**
- * Controller of the login window: checks the typed username and password
- * against the list of valid users.
+ * Controller of the login window. It stays thin: it reads the fields, starts a
+ * LoginTask on a new thread and shows the result. It does no counting and no
+ * timing: that is done by AttemptTracker, the FailureWorkers and CountdownTask.
  */
 public class LoginController {
     @FXML
@@ -22,24 +25,81 @@ public class LoginController {
     private PasswordField passwordField;
     @FXML
     private Label errorLabel;
+    @FXML
+    private Button loginButton;
 
-    private ArrayList<User> users = new ArrayList<>();
+    private List<User> users;
+    private AttemptTracker tracker;
+    private BlockingQueue<FailedAttempt> failures;
+    private Thread countdownThread;
 
-    public void setUsers(ArrayList<User> users) {
+    // Called once by LoginApplication, before the window is shown.
+    public void setUp(List<User> users, AttemptTracker tracker, BlockingQueue<FailedAttempt> failures) {
         this.users = users;
+        this.tracker = tracker;
+        this.failures = failures;
     }
 
+    // Starts a LoginTask on a new thread. The fields and the button are disabled
+    // until the result comes back, so a double click cannot start two logins.
     @FXML
     private void onLoginButtonClick() {
-        String username = usernameField.getText().trim();
-        String password = passwordField.getText();
-        for (User user : users) {
-            if (user.matches(username, password)) {
+        setFormDisabled(true);
+        errorLabel.setText("");
+
+        LoginTask task = new LoginTask(usernameField.getText().trim(), passwordField.getText(),
+                users, tracker, failures, this);
+        Thread thread = new Thread(task, "login-task");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    // Called by LoginTask through Platform.runLater, so it runs on the JavaFX thread.
+    void showResult(LoginResult result) {
+        switch (result.getType()) {
+            case SUCCESS:
                 showWelcomeScreen();
-                return;
-            }
+                break;
+            case ERROR:
+                if (result.getAttemptsLeft() == LoginResult.NOT_TRACKED) {
+                    errorLabel.setText("Wrong details");
+                } else {
+                    errorLabel.setText("Wrong details. Attempts left: " + result.getAttemptsLeft());
+                }
+                setFormDisabled(false);
+                break;
+            case BLOCKED:
+                // The form stays disabled. A CountdownTask on its own thread updates the
+                // message every second and opens the form again when the block ends.
+                countdownThread = new Thread(new CountdownTask(result.getSecondsLeft(), this), "countdown");
+                countdownThread.setDaemon(true);
+                countdownThread.start();
+                break;
         }
-        errorLabel.setText("user or password do not match");
+    }
+
+    // Called by CountdownTask once a second (on the JavaFX thread).
+    void showCountdown(int secondsLeft) {
+        errorLabel.setText("The account is blocked. Seconds left: " + secondsLeft);
+    }
+
+    // Called by CountdownTask when the block is over (on the JavaFX thread).
+    void countdownFinished() {
+        errorLabel.setText("");
+        setFormDisabled(false);
+    }
+
+    // Called when the window closes: stops a countdown that is still running.
+    public void stopCountdown() {
+        if (countdownThread != null) {
+            countdownThread.interrupt();
+        }
+    }
+
+    private void setFormDisabled(boolean disabled) {
+        usernameField.setDisable(disabled);
+        passwordField.setDisable(disabled);
+        loginButton.setDisable(disabled);
     }
 
     // Replaces the login scene with the welcome scene in the same window.
@@ -50,6 +110,7 @@ public class LoginController {
             stage.setScene(new Scene(loader.load(), 320, 240));
         } catch (IOException e) {
             errorLabel.setText("Could not open the welcome screen");
+            setFormDisabled(false);
         }
     }
 }

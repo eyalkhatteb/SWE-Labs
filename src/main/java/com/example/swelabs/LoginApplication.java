@@ -11,16 +11,24 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * The JavaFX application.
  * Lab 2: reads the valid users from users.txt and opens the login window.
- * Lab 3: takes n and t from the program arguments and checks them first.
+ * Lab 3: takes n and t from the program arguments, checks them first, and
+ * starts the two FailureWorker threads that count the failed logins.
  */
 public class LoginApplication extends Application {
     private int maxAttempts;    // n: failure number n blocks the account
     private int blockSeconds;   // t: how long a block lasts, in seconds
     private ArrayList<User> users;
+
+    private AttemptTracker tracker;
+    private BlockingQueue<FailedAttempt> failures;
+    private FailureWorker[] workers;
+    private LoginController controller;
 
     // JavaFX calls init() before start(), and not on the JavaFX thread.
     // So the arguments are checked and the users file is read before any
@@ -30,6 +38,17 @@ public class LoginApplication extends Application {
         readArguments();
         try (Scanner in = new Scanner(new File("users.txt"))) {
             users = UsersApp.readUsers(in);
+        }
+
+        // One tracker and one queue are shared by all the threads.
+        tracker = new AttemptTracker(maxAttempts, blockSeconds);
+        failures = new LinkedBlockingQueue<>();
+        workers = new FailureWorker[] {
+                new FailureWorker("failure-worker-1", failures, tracker),
+                new FailureWorker("failure-worker-2", failures, tracker)
+        };
+        for (FailureWorker worker : workers) {
+            worker.start();
         }
     }
 
@@ -76,12 +95,24 @@ public class LoginApplication extends Application {
     public void start(Stage stage) throws IOException {
         FXMLLoader loader = new FXMLLoader(LoginApplication.class.getResource("login-view.fxml"));
         Scene scene = new Scene(loader.load(), 320, 240);
-        LoginController controller = loader.getController();
-        controller.setUsers(users);
+        controller = loader.getController();
+        controller.setUp(users, tracker, failures);
 
         stage.setTitle("Users Login");
         stage.setScene(scene);
         stage.setOnCloseRequest(event -> Platform.exit()); // X ends the program
         stage.show();
+    }
+
+    // JavaFX calls stop() when the program is closing. The threads that may still
+    // be sleeping or waiting are interrupted, so they end at once.
+    @Override
+    public void stop() {
+        if (controller != null) {
+            controller.stopCountdown();
+        }
+        for (FailureWorker worker : workers) {
+            worker.interrupt();
+        }
     }
 }

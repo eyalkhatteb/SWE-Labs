@@ -14,7 +14,7 @@
     </padding>
 
     <TextField fx:id="usernameField" promptText="Email"/>
-    <Label fx:id="errorLabel" textFill="RED"/>
+    <Label fx:id="errorLabel" textFill="RED" wrapText="true" textAlignment="CENTER"/>
     <PasswordField fx:id="passwordField" promptText="Password"/>
-    <Button text="login" onAction="#onLoginButtonClick"/>
+    <Button fx:id="loginButton" text="login" onAction="#onLoginButtonClick"/>
 </VBox>
