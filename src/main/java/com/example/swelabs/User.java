@@ -1,19 +1,25 @@
 package com.example.swelabs;
 
+/**
+ * A system user: an email address as the username, and a password.
+ * A User object can only be created from valid values.
+ */
 public class User {
     private final String username;
     private final String password;
 
-    //helper parameters for max/min length
+    // Length limits
     private static final int MAX_USERNAME_LENGTH = 50;
     private static final int MAX_PASSWORD_LENGTH = 12;
     private static final int MIN_PASSWORD_LENGTH = 8;
-    //helper parameter definition for email check
+
+    // Email format: name, '@', a domain that starts with a letter or digit,
+    // '.', and an ending of at least two letters
     private static final String EMAIL_REGEX =
             "[A-Za-z0-9._+%-]+@[A-Za-z0-9][A-Za-z0-9.-]*\\.[A-Za-z]{2,}";
-    //helper parameter for password symbols definition
-    private static final String PASSWORD_SYMBOLS = "!@#$%^&*()_+=-";
 
+    // Symbols allowed in a password: the keyboard's number row, plus - and =
+    private static final String PASSWORD_SYMBOLS = "!@#$%^&*()_+=-";
 
     public User(String username, String password) throws InvalidUserException {
         checkUsername(username);
@@ -32,7 +38,7 @@ public class User {
     }
 
     private void checkPassword(String password) throws InvalidUserException {
-        //check length first
+        // Check the length first, so a password of the wrong length gets the length message
         if (password.length() < MIN_PASSWORD_LENGTH) {
             throw new InvalidUserException("Your password is too short, add more characters");
         }
@@ -57,6 +63,7 @@ public class User {
             throw new InvalidUserException("Please enter a valid password");
         }
     }
+
     public String getUsername() {
         return username;
     }
@@ -68,5 +75,10 @@ public class User {
     @Override
     public String toString() {
         return "User{username='" + username + "'}";
+    }
+
+    // Returns true only if both the username and the password equal this user's.
+    public boolean matches(String username, String password) {
+        return this.username.equals(username) && this.password.equals(password);
     }
 }
