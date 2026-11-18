@@ -67,9 +67,9 @@ public class LoginController {
                 break;
             case ERROR:
                 if (result.getAttemptsLeft() == LoginResult.NOT_TRACKED) {
-                    errorLabel.setText("Wrong details");
+                    errorLabel.setText("פרטים שגויים");
                 } else {
-                    errorLabel.setText("Wrong details. Attempts left: " + result.getAttemptsLeft());
+                    errorLabel.setText("פרטים שגויים. ניסיונות שנותרו: " + result.getAttemptsLeft());
                 }
                 setFormDisabled(false);
                 break;
@@ -85,7 +85,7 @@ public class LoginController {
 
     // Called by CountdownTask once a second (on the JavaFX thread).
     void showCountdown(int secondsLeft) {
-        errorLabel.setText("The account is blocked. Seconds left: " + secondsLeft);
+        errorLabel.setText("החשבון חסום, נותרו " + secondsLeft + " שניות");
     }
 
     // Called by CountdownTask when the block is over (on the JavaFX thread).
