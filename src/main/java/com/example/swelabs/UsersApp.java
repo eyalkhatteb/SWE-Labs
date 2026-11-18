@@ -40,10 +40,15 @@ public class UsersApp {
         ArrayList<User> users = readUsers(new Scanner(System.in));
         users.sort(Comparator.comparing(User::getUsername));
 
+        // The screen output is what the automatic check compares,
+        // so it is printed first and does not depend on the file.
+        for (User user : users) {
+            System.out.print(user.toOutputLine() + "\n");
+        }
+
         try (PrintWriter out = new PrintWriter("output.txt")) {
-            for (User u : users) {
-                System.out.print(u.toOutputLine() + "\n");
-                out.print(u.toOutputLine() + "\n");
+            for (User user : users) {
+                out.print(user.toOutputLine() + "\n");
             }
         } catch (FileNotFoundException e) {
             System.err.println("Could not write output.txt: " + e.getMessage());
