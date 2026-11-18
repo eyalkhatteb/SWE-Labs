@@ -1,5 +1,6 @@
 package com.example.swelabs;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -27,6 +28,10 @@ public class LoginController {
     private Label errorLabel;
     @FXML
     private Button loginButton;
+    @FXML
+    private Button syncTestButton;
+    @FXML
+    private Label syncTestLabel;
 
     private List<User> users;
     private AttemptTracker tracker;
@@ -94,6 +99,25 @@ public class LoginController {
         if (countdownThread != null) {
             countdownThread.interrupt();
         }
+    }
+
+    // Runs the 20-thread test of SyncTest on its own thread, so the window stays
+    // responsive, and shows the report when the test is done.
+    @FXML
+    private void onSyncTestButtonClick() {
+        syncTestButton.setDisable(true);
+        syncTestLabel.setText("Running the sync test...");
+
+        Thread thread = new Thread(() -> {
+            String report = SyncTest.run();
+            System.out.println(report);
+            Platform.runLater(() -> {
+                syncTestLabel.setText(report);
+                syncTestButton.setDisable(false);
+            });
+        }, "sync-test");
+        thread.setDaemon(true);
+        thread.start();
     }
 
     private void setFormDisabled(boolean disabled) {

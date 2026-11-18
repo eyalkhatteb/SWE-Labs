@@ -17,4 +17,6 @@
     <Label fx:id="errorLabel" textFill="RED" wrapText="true" textAlignment="CENTER"/>
     <PasswordField fx:id="passwordField" promptText="Password"/>
     <Button fx:id="loginButton" text="login" onAction="#onLoginButtonClick"/>
+    <Button fx:id="syncTestButton" text="run sync test" onAction="#onSyncTestButtonClick"/>
+    <Label fx:id="syncTestLabel" wrapText="true" textAlignment="CENTER"/>
 </VBox>

@@ -94,7 +94,7 @@ public class LoginApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader loader = new FXMLLoader(LoginApplication.class.getResource("login-view.fxml"));
-        Scene scene = new Scene(loader.load(), 320, 240);
+        Scene scene = new Scene(loader.load(), 360, 360);
         controller = loader.getController();
         controller.setUp(users, tracker, failures);
 
